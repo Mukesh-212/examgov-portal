@@ -1,6 +1,6 @@
 /**
  * ExamGov Portal — Nightly Web Scraper
- * Powered by Playwright (Chromium) + OpenRouter API (google/gemini-2.5-flash)
+ * Powered by Playwright (Chromium) + OpenRouter API (meta-llama/llama-3-8b-instruct:free)
  *
  * Execution: node scraper.js
  * Triggered by: .github/workflows/scrape.yml (nightly at 1:00 AM UTC)
@@ -36,7 +36,7 @@ if (!openRouterApiKey || openRouterApiKey.includes('your_openrouter')) {
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const AI_MODEL = 'google/gemini-2.5-flash';
+const AI_MODEL = 'meta-llama/llama-3-8b-instruct:free';
 
 const EXTRACTION_PROMPT = `Extract the primary Exam Name, Application Start Date, and Application Deadline from the following HTML.
 Return strictly a valid JSON object with no markdown wrappers, no backticks, and no extra text in this exact format:

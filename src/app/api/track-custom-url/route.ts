@@ -8,7 +8,7 @@ const supabase = createClient(
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY!;
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const AI_MODEL = 'google/gemini-2.5-flash';
+const AI_MODEL = 'meta-llama/llama-3-8b-instruct:free';
 
 const SYSTEM_PROMPT = `Extract the primary Exam Name, Application Start Date, and Application Deadline from the following HTML.
 Return strictly a valid JSON object with no markdown wrappers, no backticks, and no extra text in this exact format:
