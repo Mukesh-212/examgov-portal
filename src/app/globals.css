@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand colors */
+  --color-primary: #001e40;
+  --color-primary-container: #003366;
+  --color-secondary: #005db6;
+  --color-secondary-container: #63a1ff;
+  --color-tertiary: #101f31;
+  --color-tertiary-container: #263447;
+  --color-background: #f7f9fb;
+  --color-on-background: #191c1e;
+  --color-surface: #f7f9fb;
+  --color-surface-container: #eceef0;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f2f4f6;
+  --color-surface-container-high: #e6e8ea;
+  --color-surface-container-highest: #e0e3e5;
+  --color-on-primary: #ffffff;
+  --color-on-secondary: #ffffff;
+  --color-on-tertiary: #ffffff;
+  --color-on-surface: #191c1e;
+  --color-on-surface-variant: #43474f;
+  --color-outline: #737780;
+  --color-outline-variant: #c3c6d1;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+  --color-primary-fixed-dim: #a7c8ff;
+  --color-secondary-fixed: #d6e3ff;
+  --color-secondary-fixed-dim: #a9c7ff;
+  --color-on-secondary-fixed-variant: #00468c;
+  --color-tertiary-fixed-dim: #b9c7df;
+  --color-on-tertiary-fixed-variant: #3a485b;
+
+  /* Spacing and margins from Stitch layout */
+  --spacing-margin-desktop: 40px;
+  --spacing-margin-mobile: 16px;
+  --spacing-gutter: 24px;
+  --spacing-container-max: 1280px;
+  --spacing-stack-lg: 32px;
+  --spacing-stack-md: 16px;
+  --spacing-stack-sm: 8px;
+  --spacing-unit: 4px;
+
+  /* Custom roundness */
+  --radius-DEFAULT: 0.125rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.5rem;
+  --radius-full: 9999px;
+
+  /* Font classes override */
+  --font-sans: "Inter", sans-serif;
+}
+
+:root {
+  --background: #f7f9fb;
+  --foreground: #191c1e;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.material-symbols-outlined.filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
