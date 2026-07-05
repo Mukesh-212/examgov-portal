@@ -38,16 +38,15 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const AI_MODEL = 'meta-llama/llama-3-8b-instruct:free';
 
-const EXTRACTION_PROMPT = `Extract the primary Exam Name, Application Start Date, and Application Deadline from the following HTML.
-Return strictly a valid JSON object with no markdown wrappers, no backticks, and no extra text in this exact format:
-{"title": "string", "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD"}
-Only return the raw JSON object and nothing else.`;
+const EXTRACTION_PROMPT = `Analyze this raw text from a government exam recruitment portal. Find the active exam notices, recruitment titles, registration start dates, and closing deadlines for the current year 2026/2027. Return a strict JSON array of objects with no markdown wrappers, no backticks, and no extra text in this exact format:
+[{"title": "string", "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD"}]
+Only return the raw JSON array and nothing else. If no notices are found, return an empty array [].`;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // OpenRouter AI extraction helper
 // ──────────────────────────────────────────────────────────────────────────────
-async function parseHtmlWithOpenRouter(html) {
-  const truncatedHtml = html.slice(0, 40000);
+async function parseHtmlWithOpenRouter(content) {
+  const truncatedContent = content.slice(0, 40000);
 
   const response = await fetch(OPENROUTER_BASE_URL, {
     method: 'POST',
@@ -62,7 +61,7 @@ async function parseHtmlWithOpenRouter(html) {
       messages: [
         {
           role: 'user',
-          content: `${EXTRACTION_PROMPT}\n\nHTML:\n${truncatedHtml}`,
+          content: `${EXTRACTION_PROMPT}\n\nRaw Content:\n${truncatedContent}`,
         },
       ],
       temperature: 0,
@@ -77,14 +76,14 @@ async function parseHtmlWithOpenRouter(html) {
   const json = await response.json();
   let rawContent = json?.choices?.[0]?.message?.content ?? '';
 
-  // Strip any residual markdown fences
   rawContent = rawContent
     .replace(/```json\s*/gi, '')
     .replace(/```\s*/gi, '')
     .trim();
 
   try {
-    return JSON.parse(rawContent);
+    const parsed = JSON.parse(rawContent);
+    return Array.isArray(parsed) ? parsed : [parsed];
   } catch (parseError) {
     throw new Error(`Failed to parse OpenRouter response as JSON. Raw: ${rawContent}`);
   }
@@ -203,32 +202,33 @@ async function scrapeCustomSources(page) {
       console.log(`[CUSTOM] Navigating to: ${source.url}`);
       await page.goto(source.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-      const html = await page.content();
-      const extracted = await parseHtmlWithOpenRouter(html);
+      const rawText = await page.evaluate(() => document.body.innerText);
+      const extractedArray = await parseHtmlWithOpenRouter(rawText);
 
-      if (!extracted?.title || !extracted?.start_date || !extracted?.end_date) {
-        console.warn(`[CUSTOM] Incomplete AI extraction for ${source.url}. Skipping.`);
-        continue;
-      }
+      for (const extracted of extractedArray) {
+        if (!extracted?.title || !extracted?.start_date || !extracted?.end_date) {
+          console.warn(`[CUSTOM] Incomplete AI extraction for ${source.url}. Skipping entry.`);
+          continue;
+        }
 
-      const examPayload = {
-        title: extracted.title,
-        category: source.category || 'Custom',
-        open_date: extracted.start_date,
-        end_date: extracted.end_date,
-        source_url: source.url,
-      };
+        const examPayload = {
+          title: extracted.title,
+          category: source.category || 'Custom',
+          open_date: extracted.start_date,
+          end_date: extracted.end_date,
+          source_url: source.url,
+        };
 
-      // Upsert: update if exists, insert if new (keyed on source_url)
-      const { error: upsertError } = await supabase
-        .from('exams')
-        .upsert(examPayload, { onConflict: 'source_url' });
+        const { error: upsertError } = await supabase
+          .from('exams')
+          .upsert(examPayload, { onConflict: 'source_url' });
 
-      if (upsertError) {
-        console.error(`[CUSTOM] Upsert failed for ${source.url}:`, upsertError.message);
-      } else {
-        console.log(`[CUSTOM] ✓ Upserted: "${extracted.title}" from ${source.url}`);
-        customResults.push(examPayload);
+        if (upsertError) {
+          console.error(`[CUSTOM] Upsert failed for ${source.url}:`, upsertError.message);
+        } else {
+          console.log(`[CUSTOM] ✓ Upserted: "${extracted.title}" from ${source.url}`);
+          customResults.push(examPayload);
+        }
       }
     } catch (err) {
       console.error(`[CUSTOM] Error processing ${source.url}:`, err.message || err);
@@ -251,47 +251,26 @@ async function scrapeUPSC(page) {
       timeout: 30000,
     });
 
-    const tableRows = await page.$$('table tbody tr');
-    if (tableRows.length === 0) {
-      throw new Error('No table rows found on UPSC page.');
-    }
+    const rawText = await page.evaluate(() => document.body.innerText);
+    const extractedArray = await parseHtmlWithOpenRouter(rawText);
 
-    for (const row of tableRows) {
-      const cells = await row.$$('td');
-      if (cells.length >= 3) {
-        const titleText = await cells[0].innerText();
-        const dateText = await cells[2].innerText();
-        const title = titleText.replace(/[\n\r]/g, ' ').trim();
-        const formattedDate = parseIndianDate(dateText);
-
-        if (title && formattedDate) {
-          results.push({
-            title,
-            category: 'UPSC',
-            open_date: new Date().toISOString().split('T')[0],
-            end_date: formattedDate,
-            source_url: 'https://upsc.gov.in/examinations/active-examinations',
-          });
-        }
+    for (const extracted of extractedArray) {
+      if (!extracted?.title || !extracted?.start_date || !extracted?.end_date) {
+        continue;
       }
+      results.push({
+        title: extracted.title,
+        category: 'UPSC',
+        open_date: extracted.start_date,
+        end_date: extracted.end_date,
+        source_url: 'https://upsc.gov.in/examinations/active-examinations',
+      });
     }
 
-    console.log(`[UPSC] Scraped ${results.length} live record(s).`);
+    console.log(`[UPSC] Extracted ${results.length} record(s) via AI.`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.warn(`[UPSC] Live scrape failed: ${message}. Using fallback data.`);
-
-    const fallback = [
-      {
-        title: 'Civil Services (Preliminary) Examination 2025',
-        category: 'UPSC',
-        open_date: new Date().toISOString().split('T')[0],
-        end_date: '2025-03-05',
-        source_url: 'https://upsc.gov.in/examinations/active-examinations',
-      },
-    ];
-    await injectFallbackExams(fallback);
-    return fallback;
+    console.warn(`[UPSC] AI extraction failed: ${message}.`);
   }
 
   return results;
@@ -310,46 +289,26 @@ async function scrapeSSC(page) {
       timeout: 30000,
     });
 
-    const notices = await page.$$('.notice-board-item, .notice-item, a[href*="notice"]');
-    if (notices.length === 0) {
-      throw new Error('No notice board elements found on SSC page.');
-    }
+    const rawText = await page.evaluate(() => document.body.innerText);
+    const extractedArray = await parseHtmlWithOpenRouter(rawText);
 
-    for (let i = 0; i < Math.min(notices.length, 5); i++) {
-      const text = await notices[i].innerText();
-      if (!text) continue;
-
-      const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
-      const title = lines[0] || 'SSC Notification';
-      const formattedDate =
-        parseIndianDate(text) ||
-        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
+    for (const extracted of extractedArray) {
+      if (!extracted?.title || !extracted?.start_date || !extracted?.end_date) {
+        continue;
+      }
       results.push({
-        title,
+        title: extracted.title,
         category: 'SSC',
-        open_date: new Date().toISOString().split('T')[0],
-        end_date: formattedDate,
+        open_date: extracted.start_date,
+        end_date: extracted.end_date,
         source_url: 'https://ssc.gov.in',
       });
     }
 
-    console.log(`[SSC] Scraped ${results.length} live record(s).`);
+    console.log(`[SSC] Extracted ${results.length} record(s) via AI.`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.warn(`[SSC] Live scrape failed: ${message}. Using fallback data.`);
-
-    const fallback = [
-      {
-        title: 'Combined Graduate Level Examination (CGL) 2025',
-        category: 'SSC',
-        open_date: new Date().toISOString().split('T')[0],
-        end_date: '2025-05-03',
-        source_url: 'https://ssc.gov.in',
-      },
-    ];
-    await injectFallbackExams(fallback);
-    return fallback;
+    console.warn(`[SSC] AI extraction failed: ${message}.`);
   }
 
   return results;
@@ -368,47 +327,26 @@ async function scrapeTNPSC(page) {
       timeout: 30000,
     });
 
-    const rows = await page.$$('table tr');
-    if (rows.length === 0) {
-      throw new Error('No table rows found on TNPSC page.');
-    }
+    const rawText = await page.evaluate(() => document.body.innerText);
+    const extractedArray = await parseHtmlWithOpenRouter(rawText);
 
-    for (const row of rows) {
-      const cells = await row.$$('td');
-      if (cells.length >= 5) {
-        const titleText = await cells[1].innerText();
-        const endDateText = await cells[4].innerText();
-        const title = titleText.replace(/[\n\r]/g, ' ').trim();
-        const formattedDate = parseIndianDate(endDateText);
-
-        if (title && formattedDate) {
-          results.push({
-            title,
-            category: 'SSC',
-            open_date: new Date().toISOString().split('T')[0],
-            end_date: formattedDate,
-            source_url: 'https://www.tnpsc.gov.in/english/notification.html',
-          });
-        }
+    for (const extracted of extractedArray) {
+      if (!extracted?.title || !extracted?.start_date || !extracted?.end_date) {
+        continue;
       }
+      results.push({
+        title: extracted.title,
+        category: 'SSC',
+        open_date: extracted.start_date,
+        end_date: extracted.end_date,
+        source_url: 'https://www.tnpsc.gov.in/english/notification.html',
+      });
     }
 
-    console.log(`[TNPSC] Scraped ${results.length} live record(s).`);
+    console.log(`[TNPSC] Extracted ${results.length} record(s) via AI.`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.warn(`[TNPSC] Live scrape failed: ${message}. Using fallback data.`);
-
-    const fallback = [
-      {
-        title: 'TNPSC Group II Recruitment Services Notification 2025',
-        category: 'SSC',
-        open_date: new Date().toISOString().split('T')[0],
-        end_date: '2025-06-20',
-        source_url: 'https://www.tnpsc.gov.in/english/notification.html',
-      },
-    ];
-    await injectFallbackExams(fallback);
-    return fallback;
+    console.warn(`[TNPSC] AI extraction failed: ${message}.`);
   }
 
   return results;

@@ -803,8 +803,8 @@ export default function Home() {
                             <tr key={exam.id} className="border-t border-gray-100">
                               <td className="py-4 text-sm font-medium text-gray-900">{exam.title}</td>
                               <td className="py-4 text-sm text-gray-600">{exam.category}</td>
-                              <td className="py-4 text-sm text-gray-600">{deadline}</td>
-                              <td className="py-4 text-sm font-semibold text-gray-900">{startDate}</td>
+                              <td className="py-4 text-sm text-gray-600">{startDate}</td>
+                              <td className="py-4 text-sm font-semibold text-gray-900">{deadline}</td>
                               <td className="py-4 text-right text-sm">
                                 <a
                                   href={exam.source_url ?? "#"}
