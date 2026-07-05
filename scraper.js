@@ -1,6 +1,6 @@
 /**
  * ExamGov Portal — Nightly Web Scraper
- * Powered by Playwright (Chromium) + OpenRouter API (meta-llama/llama-3-8b-instruct:free)
+ * Powered by Playwright (Chromium) + OpenRouter API (meta-llama/llama-3-8b-instruct)
  *
  * Execution: node scraper.js
  * Triggered by: .github/workflows/scrape.yml (nightly at 1:00 AM UTC)
@@ -36,7 +36,7 @@ if (!openRouterApiKey || openRouterApiKey.includes('your_openrouter')) {
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const AI_MODEL = 'meta-llama/llama-3-8b-instruct:free';
+const AI_MODEL = 'meta-llama/llama-3-8b-instruct';
 
 const EXTRACTION_PROMPT = `Analyze this raw text from a government exam recruitment portal. Find the active exam notices, recruitment titles, registration start dates, and closing deadlines for the current year 2026/2027. Return a strict JSON array of objects with no markdown wrappers, no backticks, and no extra text in this exact format:
 [{"title": "string", "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD"}]
