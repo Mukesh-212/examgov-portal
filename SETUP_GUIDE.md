@@ -48,8 +48,8 @@ All required environment variables are already configured in `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=https://ykwgcvomtpuximdwvifv.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
-# Gemini AI (Already Set)
-GEMINI_API_KEY=YOUR_GCP_API_KEY
+# OpenRouter AI (Already Set)
+OPENROUTER_API_KEY=sk-or-v1-...
 
 # Gmail SMTP (Already Set)
 EMAIL_USER=mukessh218@gmail.com
@@ -60,7 +60,7 @@ CRON_SECRET=199021e9bc69c70af869a5fad9799b2105f6d818b3a306254b1aae016e15361d
 ```
 
 **⚠️ If You Need to Update These:**
-- **GEMINI_API_KEY**: Get from https://aistudio.google.com/app/apikey
+- **OPENROUTER_API_KEY**: Get from https://openrouter.ai/keys
 - **EMAIL_USER & EMAIL_PASS**: Gmail credentials (App Password from https://myaccount.google.com/apppasswords)
 - **CRON_SECRET**: Any long random string for Bearer token authorization
 
@@ -127,7 +127,7 @@ CREATE TABLE tracked_sources (
 
 ### 3. **Custom Portal Tracking**
 - Users submit government exam website URLs via the "Track Portal" modal
-- AI (Gemini) extracts exam title, start date, and deadline from the HTML
+- AI (OpenRouter/Llama) extracts exam title, start date, and deadline from the HTML
 - New exams automatically appear in the Exams tab
 
 ### 4. **Automatic Scraping**
@@ -304,7 +304,7 @@ The project includes automated nightly scraping. To enable:
 
 2. **Add Secrets to GitHub**
    - Go to GitHub repo → Settings → Secrets → New repository secret
-   - Add: `GEMINI_API_KEY`, `EMAIL_USER`, `EMAIL_PASS`, `CRON_SECRET`
+   - Add: `OPENROUTER_API_KEY`, `EMAIL_USER`, `EMAIL_PASS`, `CRON_SECRET`
    - Add: `SUPABASE_URL`, `SUPABASE_ANON_KEY`
 
 3. **Scraper runs automatically at 2 AM UTC daily** (configured in `.github/workflows/scrape.yml`)
@@ -324,7 +324,7 @@ taskkill /PID 29188 /F
 ### Scraper fails
 ```bash
 # Check environment variables loaded
-node -e "require('dotenv').config({path:'.env.local'}); console.log(process.env.GEMINI_API_KEY);"
+node -e "require('dotenv').config({path:'.env.local'}); console.log(process.env.OPENROUTER_API_KEY);"
 
 # Should output your API key, not empty
 ```
@@ -352,7 +352,7 @@ node -e "require('dotenv').config({path:'.env.local'}); console.log(process.env.
 | Tailwind CSS | 4 | Styling |
 | Supabase | 2.110.0 | PostgreSQL backend & auth |
 | Playwright | 1.61.1 | Browser automation for scraping |
-| Google Generative AI | 0.24.1 | Gemini AI for date extraction |
+| @google/generative-ai | 0.24.1 | Google AI SDK for AI features |
 | Nodemailer | 9.0.3 | Email sending |
 
 ---
@@ -360,7 +360,7 @@ node -e "require('dotenv').config({path:'.env.local'}); console.log(process.env.
 ## 🎓 Key Features Summary
 
 ✅ **Automatic Scraping**: Fetches exams from government websites nightly  
-✅ **AI-Powered Extraction**: Gemini AI extracts dates from exam portals  
+✅ **AI-Powered Extraction**: OpenRouter AI extracts dates from exam portals  
 ✅ **User Subscriptions**: Email notifications for user-selected categories  
 ✅ **Email Alerts**: Automated 3-day-before-deadline reminders  
 ✅ **Custom Tracking**: Add any exam portal URL and system monitors it  

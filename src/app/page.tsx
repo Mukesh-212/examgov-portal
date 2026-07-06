@@ -14,7 +14,7 @@ interface Exam {
   source_url?: string | null;
 }
 
-const CATEGORIES = ["UPSC", "SSC", "Banking", "Railways"] as const;
+const CATEGORIES = ["UPSC", "SSC", "Banking", "Railways", "TNPSC"] as const;
 const NAV_ITEMS: Array<{ key: TabKey; label: string }> = [
   { key: "exams", label: "Exams" },
   { key: "notifications", label: "Notifications" },
@@ -54,7 +54,8 @@ export default function Home() {
     const loadExams = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase.from("exams").select("*").order("end_date", { ascending: true });
+        const todayStr = new Date().toISOString().split("T")[0];
+        const { data, error } = await supabase.from("exams").select("*").gte("end_date", todayStr).order("end_date", { ascending: true });
         if (!mounted) return;
 
         if (error) {

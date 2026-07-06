@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, found: Boolean(data), data });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('API Error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('API Error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -110,7 +110,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('API Error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -133,7 +133,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, message: 'Unsubscribed successfully.' });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('API Error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

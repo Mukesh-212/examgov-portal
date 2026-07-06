@@ -33,3 +33,14 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: node scraper.js
+
+      - name: Send email reminders for exams closing in 3 days
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          DEPLOY_URL: ${{ vars.DEPLOY_URL || 'http://localhost:3000' }}
+        run: |
+          echo "Checking for exams closing in 3 days and dispatching email reminders..."
+          curl -sS -X GET "$DEPLOY_URL/api/check-reminders" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            --connect-timeout 10 \
+            --max-time 60 || echo "Reminder check skipped (deployment may not be live)"

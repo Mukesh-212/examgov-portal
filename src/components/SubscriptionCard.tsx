@@ -42,7 +42,7 @@ export default function SubscriptionCard() {
       } else {
         setMessage({ text: result.error || 'Something went wrong. Please try again.', type: 'error' });
       }
-    } catch (err) {
+    } catch {
       setMessage({ text: 'Failed to connect to the server.', type: 'error' });
     } finally {
       setSubmitting(false);

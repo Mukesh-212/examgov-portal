@@ -28,14 +28,16 @@ export default function AdminDashboard() {
   const [formMessage, setFormMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Load database entries
-  const fetchAdminData = async () => {
+  const fetchAdminData = async (showLoading = false) => {
     try {
-      setLoading(true);
-      // Fetch exams
+      if (showLoading) setLoading(true);
+      // Fetch exams (only upcoming)
+      const todayStr = new Date().toISOString().split('T')[0];
       const { data: examsData, error: examsError } = await supabase
         .from('exams')
         .select('*')
-        .order('created_at', { ascending: false });
+        .gte('end_date', todayStr)
+        .order('end_date', { ascending: true });
 
       if (examsError) {
         console.warn('Could not fetch exams for admin list:', examsError.message);
@@ -56,12 +58,42 @@ export default function AdminDashboard() {
     } catch (err) {
       console.warn('Database error:', err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAdminData();
+    const load = async () => {
+      try {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const { data: examsData, error: examsError } = await supabase
+          .from('exams')
+          .select('*')
+          .gte('end_date', todayStr)
+          .order('end_date', { ascending: true });
+
+        if (examsError) {
+          console.warn('Could not fetch exams for admin list:', examsError.message);
+        } else if (examsData) {
+          setExams(examsData);
+        }
+
+        const { count, error: countError } = await supabase
+          .from('subscribers')
+          .select('*', { count: 'exact', head: true });
+
+        if (countError) {
+          console.warn('Could not fetch subscribers count:', countError.message);
+        } else if (count !== null) {
+          setSubscriberCount(count);
+        }
+      } catch (err) {
+        console.warn('Database error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, []);
 
   // Handle Form Submission
@@ -100,7 +132,7 @@ export default function AdminDashboard() {
         setEndDate('');
         setSourceUrl('');
         // Reload list
-        fetchAdminData();
+        fetchAdminData(true);
       } else {
         setFormMessage({ text: result.error || 'Failed to save exam.', type: 'error' });
       }
@@ -119,16 +151,16 @@ export default function AdminDashboard() {
     }
 
     try {
-      const { error } = await supabase
-        .from('exams')
-        .delete()
-        .eq('id', id);
+      const res = await fetch(`/api/admin/exams?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
 
-      if (error) {
-        alert('Delete failed: ' + error.message);
-      } else {
-        // Refresh list
+      const result = await res.json();
+
+      if (res.ok) {
         fetchAdminData();
+      } else {
+        alert('Delete failed: ' + (result.error || 'Unknown error'));
       }
     } catch (err) {
       console.error(err);
@@ -192,19 +224,19 @@ export default function AdminDashboard() {
             ExamGov Portal
           </Link>
           <div className="hidden md:flex gap-6 h-full items-end">
-            <Link href="/" className="text-on-surface-variant hover:text-secondary transition-colors text-[14px] font-semibold pb-4 focus:ring-3 focus:ring-secondary focus:ring-offset-2">
+            <Link href="/" className="text-on-surface-variant hover:text-secondary transition-colors text-[14px] font-semibold pb-4 focus:ring-2 focus:ring-secondary focus:ring-offset-2">
               Exams
             </Link>
-            <a href="#" className="text-on-surface-variant hover:text-secondary transition-colors text-[14px] font-semibold pb-4 focus:ring-3 focus:ring-secondary focus:ring-offset-2">
+            <a href="#" className="text-on-surface-variant hover:text-secondary transition-colors text-[14px] font-semibold pb-4 focus:ring-2 focus:ring-secondary focus:ring-offset-2">
               Notifications
             </a>
-            <a href="#" className="text-on-surface-variant hover:text-secondary transition-colors text-[14px] font-semibold pb-4 focus:ring-3 focus:ring-secondary focus:ring-offset-2">
+            <a href="#" className="text-on-surface-variant hover:text-secondary transition-colors text-[14px] font-semibold pb-4 focus:ring-2 focus:ring-secondary focus:ring-offset-2">
               Resources
             </a>
-            <a href="#" className="text-on-surface-variant hover:text-secondary transition-colors text-[14px] font-semibold pb-4 focus:ring-3 focus:ring-secondary focus:ring-offset-2">
+            <a href="#" className="text-on-surface-variant hover:text-secondary transition-colors text-[14px] font-semibold pb-4 focus:ring-2 focus:ring-secondary focus:ring-offset-2">
               Reminders
             </a>
-            <Link href="/admin" className="text-secondary border-b-2 border-secondary pb-3 text-[14px] font-semibold focus:ring-3 focus:ring-secondary focus:ring-offset-2">
+            <Link href="/admin" className="text-secondary border-b-2 border-secondary pb-3 text-[14px] font-semibold focus:ring-2 focus:ring-secondary focus:ring-offset-2">
               Admin Access
             </Link>
           </div>
@@ -219,7 +251,7 @@ export default function AdminDashboard() {
               type="text"
             />
           </div>
-          <button className="bg-primary text-on-primary px-6 py-2 rounded text-[14px] font-semibold hover:bg-on-primary-fixed-variant transition-colors focus:ring-3 focus:ring-secondary">
+          <button className="bg-primary text-on-primary px-6 py-2 rounded text-[14px] font-semibold hover:bg-on-primary-fixed-variant transition-colors focus:ring-2 focus:ring-secondary">
             Admin Access
           </button>
         </div>
@@ -275,6 +307,7 @@ export default function AdminDashboard() {
                     <option value="SSC">SSC (Staff Selection)</option>
                     <option value="Banking">Banking (IBPS/SBI)</option>
                     <option value="Railways">Railways (RRB)</option>
+                    <option value="TNPSC">TNPSC (Tamil Nadu PSC)</option>
                   </select>
                   <span className="material-symbols-outlined absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-outline">
                     arrow_drop_down
@@ -316,7 +349,7 @@ export default function AdminDashboard() {
               <button
                 type="submit"
                 disabled={formSubmitting}
-                className="mt-4 bg-primary text-on-primary py-3 rounded text-[14px] font-semibold hover:bg-on-primary-fixed-variant transition-colors flex justify-center items-center gap-2 focus:ring-3 focus:ring-secondary disabled:opacity-50"
+                className="mt-4 bg-primary text-on-primary py-3 rounded text-[14px] font-semibold hover:bg-on-primary-fixed-variant transition-colors flex justify-center items-center gap-2 focus:ring-2 focus:ring-secondary disabled:opacity-50"
               >
                 <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
                   save
@@ -326,11 +359,10 @@ export default function AdminDashboard() {
             </form>
 
             {formMessage && (
-              <div className={`mt-4 p-4 rounded-lg flex items-center gap-2 border ${
-                formMessage.type === 'success'
+              <div className={`mt-4 p-4 rounded-lg flex items-center gap-2 border ${formMessage.type === 'success'
                   ? 'bg-[#dcfce7] text-[#166534] border-[#bbf7d0]'
                   : 'bg-error-container text-on-error-container border-outline'
-              }`}>
+                }`}>
                 <span className="material-symbols-outlined">
                   {formMessage.type === 'success' ? 'check_circle' : 'error'}
                 </span>
@@ -396,7 +428,7 @@ export default function AdminDashboard() {
             <div className="p-6 border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
               <h2 className="text-[24px] font-bold text-primary">Current Database Entries</h2>
               <div className="flex gap-2">
-                <button onClick={fetchAdminData} className="p-2 text-on-surface-variant hover:text-primary transition-colors focus:ring-2 focus:ring-secondary rounded" title="Refresh">
+                <button onClick={() => fetchAdminData()} className="p-2 text-on-surface-variant hover:text-primary transition-colors focus:ring-2 focus:ring-secondary rounded" title="Refresh">
                   <span className="material-symbols-outlined">refresh</span>
                 </button>
                 <button className="p-2 text-on-surface-variant hover:text-primary transition-colors focus:ring-2 focus:ring-secondary rounded" title="Export">
