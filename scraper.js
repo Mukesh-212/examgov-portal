@@ -22,12 +22,13 @@ const http = require('http');
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey ||
+if (!supabaseUrl || !supabaseKey ||
     supabaseUrl.includes('your-project-id') ||
-    supabaseAnonKey.includes('your-anon-key')) {
+    supabaseKey.includes('your-anon-key') ||
+    supabaseKey.includes('PASTE_YOUR')) {
   console.error('[ERROR] Supabase credentials are missing or invalid.');
   process.exit(1);
 }
@@ -36,7 +37,7 @@ if (!openRouterApiKey || openRouterApiKey.includes('your_openrouter')) {
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const AI_MODEL = 'meta-llama/llama-3-8b-instruct';
