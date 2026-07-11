@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 function normalizeCategories(categories: unknown): string[] {
   if (!Array.isArray(categories)) {
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('subscribers')
       .select('email, subscribed_categories')
       .eq('email', email)
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('subscribers')
       .upsert(
         { email, subscribed_categories: normalizedCategories },
@@ -93,7 +93,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Select at least one category.' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('subscribers')
       .update({ subscribed_categories: normalizedCategories })
       .eq('email', email)
@@ -125,7 +125,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
     }
 
-    const { error } = await supabase.from('subscribers').delete().eq('email', email);
+    const { error } = await supabaseAdmin.from('subscribers').delete().eq('email', email);
 
     if (error) {
       console.error('Unsubscribe error:', error);

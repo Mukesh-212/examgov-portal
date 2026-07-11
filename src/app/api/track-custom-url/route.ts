@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY!;
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
       source_url: url,
     };
 
-    const { error: examError } = await supabase
+    const { error: examError } = await supabaseAdmin
       .from('exams')
       .upsert(examPayload, { onConflict: 'source_url' });
 
@@ -119,7 +119,7 @@ export async function POST(req: Request) {
     }
 
     // 6. Register source in 'tracked_sources' table (conflict on url)
-    const { error: sourceError } = await supabase
+    const { error: sourceError } = await supabaseAdmin
       .from('tracked_sources')
       .upsert({ url, category }, { onConflict: 'url' });
 
