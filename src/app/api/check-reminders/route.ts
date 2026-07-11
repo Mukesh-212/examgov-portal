@@ -125,10 +125,14 @@ export async function GET(req: NextRequest) {
     const sendPromises: Promise<void>[] = [];
 
     for (const exam of exams) {
+      console.log("Exam category:", exam.category);
+
       const { data: subscribers, error: subError } = await supabaseAdmin
         .from('subscribers')
         .select('email')
-        .contains('subscribed_categories', [exam.category]);
+        .filter('subscribed_categories', 'cs', `{${exam.category}}`);
+      console.log("Subscribers:", subscribers);
+      console.log(`[REMINDERS] SQL equivalent: SELECT email FROM subscribers WHERE subscribed_categories @> ARRAY['${exam.category}']::text[]`);
 
       if (subError) {
         console.error(`[REMINDERS] Subscriber query error for ${exam.category}: ${subError.message}`);
