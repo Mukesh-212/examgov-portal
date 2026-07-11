@@ -125,14 +125,23 @@ export async function GET(req: NextRequest) {
     const sendPromises: Promise<void>[] = [];
 
     for (const exam of exams) {
+      console.log("Exam title:", exam.title);
       console.log("Exam category:", exam.category);
 
       const { data: subscribers, error: subError } = await supabaseAdmin
-        .from('subscribers')
-        .select('email')
-        .filter('subscribed_categories', 'cs', `{${exam.category}}`);
-      console.log("Subscribers:", subscribers);
-      console.log(`[REMINDERS] SQL equivalent: SELECT email FROM subscribers WHERE subscribed_categories @> ARRAY['${exam.category}']::text[]`);
+        .from("subscribers")
+        .select("*");
+
+      console.log("All subscribers:", subscribers);
+
+      if (subscribers && subscribers.length > 0) {
+        console.log("Subscriber categories:", subscribers.map(s => s.subscribed_categories));
+      }
+
+      console.log("Category comparison:", JSON.stringify(exam.category), "(length:", exam.category.length, ")");
+
+      const trimmedCategory = exam.category.trim();
+      console.log("Trimmed category:", JSON.stringify(trimmedCategory), "(length:", trimmedCategory.length, ")");
 
       if (subError) {
         console.error(`[REMINDERS] Subscriber query error for ${exam.category}: ${subError.message}`);
@@ -144,11 +153,17 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      const validSubscribers = subscribers.filter(
-        (sub): sub is Subscriber => typeof sub.email === 'string' && sub.email.length > 0
+      const matchingSubscribers = subscribers.filter((s: { subscribed_categories: string[] }) =>
+        s.subscribed_categories.some(c => c.trim().toLowerCase() === trimmedCategory.toLowerCase())
       );
 
-      console.log(`[REMINDERS] ${validSubscribers.length} subscriber(s) for "${exam.title}"`);
+      console.log(`[REMINDERS] After in-memory matching: ${matchingSubscribers.length} subscriber(s) for "${exam.title}"`);
+
+      const validSubscribers = matchingSubscribers.filter(
+        (sub: { email: string }): sub is Subscriber => typeof sub.email === 'string' && sub.email.length > 0
+      );
+
+      console.log(`[REMINDERS] ${validSubscribers.length} valid subscriber(s) for "${exam.title}"`);
 
       const { data: alreadySent, error: sentError } = await supabaseAdmin
         .from('sent_reminders')
